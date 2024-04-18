@@ -3,17 +3,8 @@
 #include <atomic>
 #include <chrono>
 
-/**
- * Non-Atomic lock Variable:
- * - The lock variable is a regular bool, which is not atomic.
- * - This means that read and write operations on this variable are not atomic and can be interrupted by thread switches,
- *   leading to race conditions.
- *
- * Solution:
- * - Use an atomic variable to ensure that the read and write operations on the lock variable are atomic.
- */
-// bool lock = false;
 std::atomic<bool> lock(false);
+
 /**
  * The function is used to test and set the value of an atomic boolean variable.
  *
@@ -21,11 +12,12 @@ std::atomic<bool> lock(false);
  */
 bool test_and_set() {
     /**
-     * The following code is not thread-safe.
+     * In hardware, the test-and-set operation is implemented as a single atomic instruction.
+     *
+     * bool rv = lock;
+     * lock = true;
+     * return rv;
      */
-    //    bool rv = lock;
-    //    lock = true;
-    //    return rv;
 
     /**
      * The following code is thread-safe.
@@ -54,7 +46,7 @@ void acquire(void (*critical_section)(int), int id) {
     critical_section(id);
 
     // Release the lock
-    lock.store(false); // lock = false;
+    lock.store(false);
 }
 
 /**
