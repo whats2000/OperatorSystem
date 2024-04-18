@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
-project(TestAndSet)
+project(SynchronizationTestAndSet)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(TestAndSet
+add_executable(SynchronizationTestAndSet
         main.cpp)
