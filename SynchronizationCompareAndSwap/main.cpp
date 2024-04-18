@@ -36,6 +36,12 @@ bool compare_and_swap(std::atomic<bool>* value, bool expected, bool new_value) {
     return value->compare_exchange_strong(expected, new_value);
 }
 
+/**
+ * The function is used to acquire a lock.
+ *
+ * @param critical_section - The critical section to be executed.
+ * @param id - The id of the thread.
+ */
 void acquire(void (*critical_section)(int), int id) {
     while (!compare_and_swap(&lock, false, true))
         // Yield the thread to the scheduler
@@ -48,6 +54,11 @@ void acquire(void (*critical_section)(int), int id) {
     lock.store(false);
 }
 
+/**
+ * The function is used to execute the critical section.
+ *
+ * @param id - The id of the thread.
+ */
 void critical_section(int id) {
     for (int i = 0; i < 5; i++) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
