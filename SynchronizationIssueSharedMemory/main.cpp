@@ -40,6 +40,15 @@ void producer(int id) {
     buffer[in] = nextProduced;
     in = (in + 1) % BUFFER_SIZE;
     counter++;
+    /**
+     * 實際上 counter++ 在 CPU 中是分成三個步驟
+     *
+     * 1. 讀取 counter 的值 (move ax, counter)
+     * 2. 將 counter 的值加 1 (add ax, 1)
+     * 3. 將加 1 後的值寫入 counter (move counter, ax)
+     *
+     * 如果在這三個步驟中被其他執行緒打斷，可能會導致 counter 的值不正確
+     */
     std::lock_guard<std::mutex> guard(output_mutex);
     std::cout << "Produced by producer " << id << ": " << nextProduced << std::endl;
 }
@@ -58,6 +67,15 @@ void consumer(int id) {
     nextConsumed = buffer[out];
     out = (out + 1) % BUFFER_SIZE;
     counter--;
+    /**
+     * 同理，counter-- 在 CPU 中是分成三個步驟
+     *
+     * 1. 讀取 counter 的值 (move bx, counter)
+     * 2. 將 counter 的值減 1 (sub bx, 1)
+     * 3. 將減 1 後的值寫入 counter (move counter, bx)
+     *
+     * 這也可能導致 counter 的值不正確
+     */
 
     std::lock_guard<std::mutex> guard(output_mutex);
     std::cout << "Consumed by consumer " << id << ": " << nextConsumed << std::endl;
@@ -92,13 +110,24 @@ int main() {
 }
 
 /**
- * Considerations and Potential Issues
- * Concurrency Control:
- * The program lacks proper synchronization for shared variables (in, out, counter).
- * The provided code will likely result in a race condition because these variables are accessed and modified by multiple threads without locks.
- * This can lead to incorrect program behavior.
+ * 考慮事項和潛在問題
+ * 並發控制：
+ *   程序缺乏對共享變量（in，out，counter）的適當同步。
+ *   提供的代碼可能會導致競爭條件，因為這些變量被多個線程無鎖訪問和修改。
+ *   這可能導致程序行為不正確。
  *
- * Busy Waiting:
- * Using busy waiting (while (counter == BUFFER_SIZE); and while (counter == 0);) is inefficient as it consumes CPU cycles unnecessarily.
- * It's better to use condition variables or other signaling mechanisms to efficiently manage waiting.
+ * 忙等待：
+ *   使用忙等待（while (counter == BUFFER_SIZE); 和 while (counter == 0);）是低效的，因為它不必要地消耗CPU週期。
+ *   最好使用條件變量或其他信號機制來有效管理等待。
+ *
+ * 示例:
+ *   1. producer: move ax, counter; -> ax = 5
+ *   2. producer: add ax, 1; -> ax = 6
+ *   3. context switch
+ *   4. consumer: move bx, counter; -> bx = 5
+ *   5. consumer: sub bx, 1; -> bx = 4
+ *   6. context switch
+ *   7. producer: move counter, ax; -> counter = 6
+ *   8. context switch
+ *   9. consumer: move counter, bx; -> counter = 4
  */
