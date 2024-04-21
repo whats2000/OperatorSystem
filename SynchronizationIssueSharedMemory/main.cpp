@@ -130,4 +130,7 @@ int main() {
  *   7. producer: move counter, ax; -> counter = 6
  *   8. context switch
  *   9. consumer: move counter, bx; -> counter = 4
+ *
+ *   這樣可能導致 counter 的值不正確，這是 Race Condition 的一種情況
+ *   即最後 counter 的會依據最後一個操作的值來決定
  */
