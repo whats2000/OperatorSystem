@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 
+// 這就是一個硬體級的原子操作的 C++ 實現
 std::atomic<bool> lock(false);
 
 /**
@@ -64,11 +65,17 @@ void critical_section(int id) {
 }
 
 int main() {
+    std::thread t0(acquire, critical_section, 0);
     std::thread t1(acquire, critical_section, 1);
-    std::thread t2(acquire, critical_section, 2);
 
+    t0.join();
     t1.join();
-    t2.join();
 
     return 0;
 }
+
+/**
+ * 以上程式碼中，我們使用了 atomic<bool> 類型的變數 lock 來實珵了一個簡單的鎖。
+ *
+ * 接下來查看 Compare-and-Swap (CAS) 操作的原子變數類型。
+ */

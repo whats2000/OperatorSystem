@@ -77,3 +77,8 @@ int main() {
 
     return 0;
 }
+
+/**
+ * 接下來，我們考慮一個更加複雜的問題，即如何實現一個可以支持多個 Process 的 Mutual Exclusion。
+ * 對於多個 Process 的話，可以使用 Bound Waiting Mutual Exclusion with Test-and-Set
+ */

@@ -17,6 +17,7 @@ std::vector<std::atomic<bool>> waiting(n);
 bool test_and_set(std::atomic<bool> *target) {
     return target->exchange(true);
 }
+
 /**
  * The function is used to implement the acquire operation.
  * @param id - The id of the thread.
@@ -74,3 +75,19 @@ int main() {
     return 0;
 }
 
+/**
+ * 但是這些解決方案很複雜，應用程式程式師通常無法訪問 (雖然在 C++ 中可以使用 std::atomic 類型)。
+ * => 操作系統設計人員構建軟體工具來解決關鍵部分問題
+ *
+ * 一個典型的解決方案是使用 Mutex Locks (互斥鎖)。
+ * - 互斥鎖是一種同步原語，用於保護共享資源。
+ * - 互斥鎖是用 acquire() 和 release() 操作來操作的。
+ *   => Boolean 變數 lock 用於表示互斥鎖的狀態。
+ * - 呼叫 acquire() 與 release() 必須是原子的。
+ *   => 通常是用硬體的原子指令來實現。
+ *
+ * 但是，這種方法有一個問題：忙碌等待。
+ *   => 此類鎖又稱 Spinning Locks (自旋鎖)。
+ *
+ * 接續到示例 Mutex Locks (互斥鎖)。
+ */

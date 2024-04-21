@@ -51,6 +51,10 @@ void producer(int id) {
      */
     std::lock_guard<std::mutex> guard(output_mutex);
     std::cout << "Produced by producer " << id << ": " << nextProduced << std::endl;
+    /**
+     * 這裡的 cout 在 CPU 中也是分成多個步驟
+     * 你可以試試不加鎖的情況下執行，這可以更好的理解同步的重要性
+     */
 }
 
 /**
@@ -133,4 +137,22 @@ int main() {
  *
  *   這樣可能導致 counter 的值不正確，這是 Race Condition 的一種情況
  *   即最後 counter 的會依據最後一個操作的值來決定
+ *
+ *   可以的解決方法是使用 阻止中斷（Interrupt Disable），但這樣會導致系統無法及時響應中斷
+ *   我們應該定義這是個 Critical Section 的問題
+ *   即:
+ *   1. N processes 使用共享資源
+ *   2. 每個 process 都有一段 code segment，這段程式碼在執行時，會存取共享資源，這段程式碼稱為 Critical Section
+ *   3. 這些 process 之間，不應該同時進入 Critical Section，即 Mutual Exclusion
+ *
+ *   Critical Section 的需求:
+ *   1. Mutual Exclusion: 一次只能有一個 process 進入 Critical Section
+ *   2. Progress: 如果沒有 process 進入 Critical Section，則只有那些不在 Critical Section 的 process 可以決定哪個 process 進入 Critical Section
+ *   3. Bounded Waiting: 進入 Critical Section 的 process 不能無限等待
+ *
+ *   有兩種方法取決於 Kernel 是搶先式 (Preemptive) 或非搶先式 (Non-Preemptive)
+ *   1. Preemption: 進入 Critical Section 的 process 可能被中斷，並且被其他 process 取代
+ *   2. Non-Preemption: 進入 Critical Section 的 process 不會被中斷，直到它自己退出，在 kernel-mode 中不存在 Race Condition
+ *
+ *   接續到 Peterson's Solution
  */
