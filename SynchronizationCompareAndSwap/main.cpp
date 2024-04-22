@@ -43,9 +43,10 @@ bool compare_and_swap(std::atomic<bool>* value, bool expected, bool new_value) {
  * @param id - The id of the thread.
  */
 void acquire(void (*critical_section)(int), int id) {
-    while (!compare_and_swap(&lock, false, true))
+    while (!compare_and_swap(&lock, false, true)) {
         // Yield the thread to the scheduler
         std::this_thread::yield();
+    }
 
     // Execute the critical section
     critical_section(id);
@@ -79,6 +80,12 @@ int main() {
 }
 
 /**
+ * - Mutual exclusion is preserved 互斥執行
+ * - Progress requirement is satisfied 在沒人執行時可以直接進入
+ * - 不滿足 bounded waiting requirement
+ *   - 雖然compare_and_swap提供了一個公平的機會讓所有線程嘗試獲得鎖，但因為這裡使用了忙等待（busy waiting），若某些線程調度不均可能導致有界等待條件不被完全保證。
+ *   - 這是因為沒有控制等待的線程順序或限制。
+ *
  * 接下來，我們考慮一個更加複雜的問題，即如何實現一個可以支持多個 Process 的 Mutual Exclusion。
  * 對於多個 Process 的話，可以使用 Bound Waiting Mutual Exclusion with Test-and-Set
  */

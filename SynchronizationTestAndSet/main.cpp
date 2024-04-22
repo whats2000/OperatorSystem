@@ -76,6 +76,11 @@ int main() {
 
 /**
  * 以上程式碼中，我們使用了 atomic<bool> 類型的變數 lock 來實珵了一個簡單的鎖。
+ * - Mutual exclusion is preserved 互斥執行
+ * - Progress requirement is satisfied 在沒人執行時可以直接進入
+ * - 不滿足 bounded waiting requirement
+ *   - 此實現中存在一個潛在的問題是無界等待，因為沒有限制一個線程在其他線程之前重複獲得鎖的次數。
+ *   - 由於鎖的獲得是基於不確定的線程調度和鎖競爭，因此不能保證線程間獲得鎖的公平性或有界等待。
  *
  * 接下來查看 Compare-and-Swap (CAS) 操作的原子變數類型。
  */

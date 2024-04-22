@@ -64,8 +64,24 @@ int main() {
 /**
  * Provable that
  * - Mutual exclusion is preserved 互斥執行
+ *   - If P0 is in the critical section, then flag[1] == false or turn == 0
+ *   - If P1 is in the critical section, then flag[0] == false or turn == 1
+ *   - 假設兩個都在 critical section
+ *     - 則 flag[0] == true and flag[1] == true
+ *     - turn == 0 for P0 to enter and turn == 1 for P1 to enter
+ *     - 然而 turn == 0 and turn == 1, 矛盾，所以不可能發生
+ *     - 故兩個不可能同時進入 critical section
+ *
  * - Progress requirement is satisfied 在沒人執行時可以直接進入
+ *   - If P1 is not ready -> flag[1] == false -> P0 can enter the critical section
+ *   - If both are ready, flag[0] == true and flag[1] == true
+ *   - If turn == 0, P0 can enter otherwise P1 can enter
+ *   - 這些情況都可以確保至少有一個可以進入 critical section
+ *
  * - Bounded-waiting requirement is met 確保沒有無限等
+ *   - Once P1 exits the critical section, it sets flag[1] = false then P0 can enter
+ *   - If P1 exits the critical section and resets flag[1] = true, then turn = 0 (Overwrite P0's turn), P0 can enter
+ *   - P0 不會無限等待
  */
 
 /**
