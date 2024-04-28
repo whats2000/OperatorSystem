@@ -3,72 +3,64 @@
 #include <mutex>
 #include <condition_variable>
 #include <vector>
-#include <random>
 
-// Print Lock
 std::mutex printMutex;
 
-// Random Number Generator
-std::random_device rd;
-std::mt19937 gen(rd());
-
 class DiningPhilosophers {
-    std::vector<bool> forks;
-    std::vector<std::condition_variable> conditions;
+    enum State { THINKING, HUNGRY, EATING };
+    std::vector<State> state;
+    std::vector<std::condition_variable> self;
     std::mutex mtx;
 
 public:
-    explicit DiningPhilosophers(int n) : forks(n, false), conditions(n) {}
+    explicit DiningPhilosophers(int n) : state(n, THINKING), self(n) {}
 
-    void pickUp(int philId) {
+    void pickUp(int i) {
         std::unique_lock<std::mutex> lock(mtx);
-        int left = philId;
-        int right = static_cast<int>((philId + 1) % forks.size());
-
-        // Wait until both left and right forks are available
-        conditions[philId].wait(lock, [&] { return !forks[left] && !forks[right]; });
-
-        // Take both forks
-        forks[left] = true;
-        forks[right] = true;
+        state[i] = HUNGRY;
+        test(i);
+        while (state[i] != EATING) {
+            self[i].wait(lock);
+        }
     }
 
-    void putDown(int philId) {
+    void putDown(int i) {
         std::unique_lock<std::mutex> lock(mtx);
-        int left = philId;
-        int right = static_cast<int>((philId + 1) % forks.size());
+        state[i] = THINKING;
+        // Test left and right neighbors
+        test((i + 4) % 5);
+        test((i + 1) % 5);
+    }
 
-        // Release both forks
-        forks[left] = false;
-        forks[right] = false;
-
-        // Notify the next philosophers
-        conditions[left].notify_one();
-        conditions[right].notify_one();
+    void test(int i) {
+        if (state[(i + 4) % 5] != EATING &&
+            state[i] == HUNGRY &&
+            state[(i + 1) % 5] != EATING) {
+            state[i] = EATING;
+            self[i].notify_one();
+        }
     }
 };
 
-/**
- * @brief Philosopher thread function
- * @param id - Philosopher ID
- * @param table - DiningPhilosophers object
- * @param n - Number of times to eat
- */
-void philosopher(int id, DiningPhilosophers& table, int n = 3) {
-    for (int i = 0; i < n; i++) {
+void philosopher(int id, DiningPhilosophers& table, int numEats = 3) {
+    for (int i = 0; i < numEats; i++) {
+        // Think
         std::unique_lock<std::mutex> lock(printMutex);
         std::cout << "Philosopher " << id << " is thinking.\n";
         lock.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds(gen() % 3));
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        // End think
 
         table.pickUp(id);
 
-        /* Critical Section */
+        // Eat
         lock.lock();
         std::cout << "Philosopher " << id << " is eating.\n";
         lock.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds(gen() % 3));
-        /* End of Critical Section */
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        // End eat
 
         table.putDown(id);
     }
