@@ -4,6 +4,7 @@
 #include <mutex>
 #include <algorithm>
 #include <iomanip>
+#include <random>
 
 /**
  * Banker's Algorithm
@@ -355,14 +356,30 @@ void print_state() {
  * @param customer_num The customer number
  */
 void customer_thread(int customer_num) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::vector<std::uniform_int_distribution<>> distributions;
+    distributions.reserve(NUMBER_OF_RESOURCES);
+
+    // Prepare distributions for each resource according to the max need
+    for (int i = 0; i < NUMBER_OF_RESOURCES; ++i) {
+        distributions.emplace_back(0, need[customer_num][i]);
+    }
+
     while (true) {
         int request[NUMBER_OF_RESOURCES];
         bool all_needs_met = true;
 
         // Create a request that is smaller or equal to the need
         for (int i = 0; i < NUMBER_OF_RESOURCES; ++i) {
-            request[i] = std::min(need[customer_num][i], 1);
-            if (need[customer_num][i] > 0) all_needs_met = false;
+            if (need[customer_num][i] > 0) {
+                // The max request here should be the lesser of the current need or what's left of the max allowance
+                int max_request = std::min(need[customer_num][i], maximum[customer_num][i] - allocation[customer_num][i]);
+                request[i] = distributions[i](gen) % (max_request + 1);
+                all_needs_met = false;
+            } else {
+                request[i] = 0;
+            }
         }
 
         // Exit loop if all needs are met
