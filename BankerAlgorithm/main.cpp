@@ -53,8 +53,8 @@
  * If a request does not leave the system in a safe state, the banker will deny it.
  * Function prototypes for requesting and releasing resources are as follows:
  * ```cpp
- * int request resources (int customer num, int request []);
- * int release resources (int customer num, int release);
+ * int request resources (int customer_num, int request[]);
+ * int release resources (int customer_num, int release[]);
  * ```
  * These two functions should return 0 if successful (the request has been granted) and-1 if unsuccessful.
  * Multiple threads (customers) will concurrently access shared data through these two functions.
@@ -309,41 +309,6 @@ int release_resources(int customer_num, const int release[]) {
 }
 
 /**
- * Customer thread function
- * This function simulates a customer requesting and releasing resources
- *
- * @param customer_num The customer number
- */
-void customer_thread(int customer_num) {
-    while (true) {
-        int request[NUMBER_OF_RESOURCES];
-        bool all_needs_met = true;
-
-        // Create a request that is smaller or equal to the need
-        for (int i = 0; i < NUMBER_OF_RESOURCES; ++i) {
-            request[i] = std::min(need[customer_num][i], 1);  // Request up to the current need, could be less for illustration
-            if (need[customer_num][i] > 0) all_needs_met = false;  // Check if any need is still not met
-        }
-
-        // Exit loop if all needs are met
-        if (all_needs_met) {
-            std::cout << "Customer " << customer_num << " has all needs met and will exit." << std::endl;
-            break;
-        }
-
-        if (request_resources(customer_num, request) == 0) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            print_state();
-            release_resources(customer_num, request);
-        } else {
-            std::cout << "Customer " << customer_num << " must wait, resources not granted." << std::endl;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-}
-
-
-/**
  * Print state function
  * This function prints the current state of the system
  */
@@ -381,6 +346,46 @@ void print_state() {
         std::cout << std::endl;
     }
     std::cout << "----------------------------------------------------------------\n";
+}
+
+/**
+ * Customer thread function
+ * This function simulates a customer requesting and releasing resources
+ *
+ * @param customer_num The customer number
+ */
+void customer_thread(int customer_num) {
+    while (true) {
+        int request[NUMBER_OF_RESOURCES];
+        bool all_needs_met = true;
+
+        // Create a request that is smaller or equal to the need
+        for (int i = 0; i < NUMBER_OF_RESOURCES; ++i) {
+            request[i] = std::min(need[customer_num][i], 1);
+            if (need[customer_num][i] > 0) all_needs_met = false;
+        }
+
+        // Exit loop if all needs are met
+        if (all_needs_met) {
+            {
+                std::lock_guard<std::mutex> output_lock(output_mtx);
+                std::cout << "Customer " << customer_num << " has all needs met and will exit." << std::endl;
+            }
+            release_resources(customer_num, allocation[customer_num]);
+            break;
+        }
+
+        if (request_resources(customer_num, request) == 0) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            print_state();
+        } else {
+            {
+                std::lock_guard<std::mutex> output_lock(output_mtx);
+                std::cout << "Customer " << customer_num << " must wait, resources not granted." << std::endl;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
 }
 
 int main(int argc, char* argv[]) {
