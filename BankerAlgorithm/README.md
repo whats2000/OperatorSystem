@@ -36,8 +36,8 @@ The banker will grant a request if it satisfies the safety algorithm outlined in
 If a request does not leave the system in a safe state, the banker will deny it.
 Function prototypes for requesting and releasing resources are as follows:
 ```cpp
-int request resources (int customer num, int request []);
-int release resources (int customer num, int release);
+int request resources (int customer num, int request[]);
+int release resources (int customer num, int release[]);
 ```
 These two functions should return 0 if successful (the request has been granted) and-1 if unsuccessful.
 Multiple threads (customers) will concurrently access shared data through these two functions.
