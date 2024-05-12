@@ -87,8 +87,9 @@ int release_resources(int customer_num, const int release[]);
 
 bool is_safe();
 
-void customer_thread(int customer_num);
 void print_state();
+void customer_thread(int customer_num);
+bool check_initial_feasibility();
 
 // Mutex lock for the shared data
 std::mutex mtx;
@@ -242,7 +243,13 @@ int request_resources(int customer_num, const int request[]) {
     if (is_safe()) {
         {
             std::lock_guard<std::mutex> output_lock(output_mtx);
-            std::cout << "Resources allocated to customer " << customer_num << std::endl;
+            std::cout << "Resources allocated to customer " << customer_num << " with request: " << [request]() {
+                std::string str;
+                for (int i = 0; i < NUMBER_OF_RESOURCES; ++i) {
+                    str += std::to_string(request[i]) + " ";
+                }
+                return str;
+            }() << std::endl;
         }
 
         // The resources are allocated
@@ -369,6 +376,7 @@ void customer_thread(int customer_num) {
     while (true) {
         int request[NUMBER_OF_RESOURCES];
         bool all_needs_met = true;
+        bool is_request_empty = true;
 
         // Create a request that is smaller or equal to the need
         for (int i = 0; i < NUMBER_OF_RESOURCES; ++i) {
@@ -377,6 +385,11 @@ void customer_thread(int customer_num) {
                 int max_request = std::min(need[customer_num][i], maximum[customer_num][i] - allocation[customer_num][i]);
                 request[i] = distributions[i](gen) % (max_request + 1);
                 all_needs_met = false;
+
+                // Check if the request is empty
+                if (request[i] > 0) {
+                    is_request_empty = false;
+                }
             } else {
                 request[i] = 0;
             }
@@ -392,22 +405,66 @@ void customer_thread(int customer_num) {
             break;
         }
 
+        // If the request is empty, skip this iteration
+        if (is_request_empty) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            continue;
+        }
+
+        // Request resources
         if (request_resources(customer_num, request) == 0) {
+            // Request was successful, print the state
             std::this_thread::sleep_for(std::chrono::seconds(1));
             print_state();
         } else {
+            // Request was denied, must wait
             {
                 std::lock_guard<std::mutex> output_lock(output_mtx);
                 std::cout << "Customer " << customer_num << " must wait, resources not granted." << std::endl;
             }
         }
+
+        // Sleep for a while before making another request
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 
+/**
+ * Check initial feasibility function
+ * This function checks if the initial state of the system is feasible
+ * The initial resources must be able to satisfy the maximum demand of any single process
+ *
+ * @return true if the initial state is feasible, false otherwise
+ */
+bool check_initial_feasibility() {
+    // Check each resource type to see if it meets the max demand of any single process
+    for (int j = 0; j < NUMBER_OF_RESOURCES; ++j) {
+        int max_demand_for_resource = 0;
+        for (auto & i : maximum) {
+            if (i[j] > max_demand_for_resource) {
+                max_demand_for_resource = i[j];
+            }
+        }
+        if (available[j] < max_demand_for_resource) {
+            std::cerr << "Insufficient resources of type " << j << ": available "
+                      << available[j] << ", required at least " << max_demand_for_resource << std::endl;
+
+            // Not enough of this resource available to meet the maximum demand
+            return false;
+        }
+    }
+
+    // All resource types meet or exceed the max demand
+    return true;
+}
+
+
+
 int main(int argc, char* argv[]) {
     if (argc < NUMBER_OF_RESOURCES + 1) {
+        std::cerr << "Error: Not enough arguments provided." << std::endl;
         std::cerr << "Usage: " << argv[0] << " <resources...>" << std::endl;
+        std::cerr << "Example use: " << argv[0] << " 10 5 7" << std::endl;
         return 1;
     }
 
@@ -430,6 +487,11 @@ int main(int argc, char* argv[]) {
             need[i][j] = maximum[i][j];  // Initial need is maximum need
             allocation[i][j] = 0;  // Initial allocation is 0
         }
+    }
+
+    if (!check_initial_feasibility()) {
+        std::cerr << "Error: Initial conditions are not feasible." << std::endl;
+        return 1;
     }
 
     std::vector<std::thread> threads;
