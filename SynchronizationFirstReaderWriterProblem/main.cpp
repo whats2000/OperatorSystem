@@ -83,7 +83,7 @@ void reader(int id) {
 }
 
 /**
- * @brief Writer function
+ * Writer function
  * @param id - Writer id
  */
 void writer(int id) {

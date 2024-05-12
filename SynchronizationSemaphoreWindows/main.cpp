@@ -78,4 +78,9 @@ int main() {
 
 /**
  * 這是在 Windows 環境下使用 Semaphore 的範例程式碼。
+ *
+ * 接下來我們來探討一下 Synchronization 三大問題
+ * - Bounding Buffer Problem
+ * - Readers-Writers Problem
+ * - Dining-Philosophers Problem
  */
