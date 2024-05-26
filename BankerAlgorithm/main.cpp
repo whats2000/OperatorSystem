@@ -212,6 +212,7 @@ int request_resources(int customer_num, const int request[]) {
 
         {
             std::lock_guard<std::mutex> output_lock(output_mtx);
+            std::cout << std::flush;
             std::cout << "Error: Process has exceeded its maximum claim." << std::endl;
         }
 
@@ -225,6 +226,7 @@ int request_resources(int customer_num, const int request[]) {
         if (request[j] <= available[j]) continue;
         {
             std::lock_guard<std::mutex> output_lock(output_mtx);
+            std::cout << std::flush;
             std::cout << "Resources are not available for customer " << customer_num << std::endl;
         }
 
@@ -243,6 +245,7 @@ int request_resources(int customer_num, const int request[]) {
     if (is_safe()) {
         {
             std::lock_guard<std::mutex> output_lock(output_mtx);
+            std::cout << std::flush;
             std::cout << "Resources allocated to customer " << customer_num << " with request: " << [request]() {
                 std::string str;
                 for (int i = 0; i < NUMBER_OF_RESOURCES; ++i) {
@@ -265,6 +268,7 @@ int request_resources(int customer_num, const int request[]) {
 
     {
         std::lock_guard<std::mutex> output_lock(output_mtx);
+        std::cout << std::flush;
         std::cout << "Resources request by customer " << customer_num << " leads to unsafe state, rolling back."
                   << std::endl;
     }
@@ -292,6 +296,7 @@ int release_resources(int customer_num, const int release[]) {
 
         {
             std::lock_guard<std::mutex> output_lock(output_mtx);
+            std::cout << std::flush;
             std::cout << "Error: Attempt to release more resources than allocated for customer " << customer_num
                       << std::endl;
         }
@@ -309,6 +314,7 @@ int release_resources(int customer_num, const int release[]) {
 
     {
         std::lock_guard<std::mutex> output_lock(output_mtx);
+        std::cout << std::flush;
         std::cout << "Resources released by customer " << customer_num << std::endl;
     }
 
@@ -322,6 +328,7 @@ int release_resources(int customer_num, const int release[]) {
  */
 void print_state() {
     std::lock_guard<std::mutex> lock(output_mtx);
+    std::cout << std::flush;
     std::cout << "Current State of System:\n";
     std::cout << "----------------------------------------------------------------\n";
     std::cout << "  Allocation     Need       Maximum     Available\n";
@@ -399,6 +406,7 @@ void customer_thread(int customer_num) {
         if (all_needs_met) {
             {
                 std::lock_guard<std::mutex> output_lock(output_mtx);
+                std::cout << std::flush;
                 std::cout << "Customer " << customer_num << " has all needs met and will exit." << std::endl;
             }
             release_resources(customer_num, allocation[customer_num]);
@@ -420,6 +428,7 @@ void customer_thread(int customer_num) {
             // Request was denied, must wait
             {
                 std::lock_guard<std::mutex> output_lock(output_mtx);
+                std::cout << std::flush;
                 std::cout << "Customer " << customer_num << " must wait, resources not granted." << std::endl;
             }
         }
